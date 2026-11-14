@@ -22,18 +22,23 @@ jobs:
       with:
         channel: 'stable'
 
-    - name: Generate fresh Android project
+    - name: Backup our files
       run: |
-        flutter create /tmp/eclips_fresh --project-name eclips --platforms android
-        echo "=== Fresh project created ==="
-        ls -la /tmp/eclips_fresh/android/
+        mkdir -p /tmp/backup
+        cp pubspec.yaml /tmp/backup/
+        cp -r lib /tmp/backup/
+        echo "=== Files backed up ==="
 
-    - name: Replace Android folder
+    - name: Create Flutter project
       run: |
-        rm -rf android
-        cp -r /tmp/eclips_fresh/android ./android
-        echo "=== Android folder replaced ==="
-        ls -la android/
+        flutter create . --project-name eclips --force
+        echo "=== Flutter project created ==="
+
+    - name: Restore our files
+      run: |
+        cp /tmp/backup/pubspec.yaml .
+        cp -r /tmp/backup/lib .
+        echo "=== Our files restored ==="
 
     - name: Install dependencies
       run: flutter pub get
