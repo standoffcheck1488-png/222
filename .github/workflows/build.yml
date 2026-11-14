@@ -27,17 +27,23 @@ jobs:
         mkdir -p /tmp/backup
         cp pubspec.yaml /tmp/backup/
         cp -r lib /tmp/backup/
+        cp android/app/src/main/AndroidManifest.xml /tmp/backup/AndroidManifest.xml
+        cp android/app/src/main/kotlin/com/example/eclips/MainActivity.kt /tmp/backup/MainActivity.kt
         echo "=== Files backed up ==="
 
     - name: Create Flutter project
       run: |
-        flutter create . --project-name eclips --force
+        flutter create . --project-name eclips --platforms android --overwrite
         echo "=== Flutter project created ==="
 
     - name: Restore our files
       run: |
         cp /tmp/backup/pubspec.yaml .
+        rm -rf lib
         cp -r /tmp/backup/lib .
+        cp /tmp/backup/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
+        mkdir -p android/app/src/main/kotlin/com/example/eclips
+        cp /tmp/backup/MainActivity.kt android/app/src/main/kotlin/com/example/eclips/MainActivity.kt
         echo "=== Our files restored ==="
 
     - name: Install dependencies
