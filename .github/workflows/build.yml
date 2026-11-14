@@ -26,16 +26,14 @@ jobs:
       run: |
         flutter create /tmp/eclips_fresh --project-name eclips --platforms android
         echo "=== Fresh project created ==="
-        ls /tmp/eclips_fresh/android/
+        ls -la /tmp/eclips_fresh/android/
 
-    - name: Copy fresh Android files
+    - name: Replace Android folder
       run: |
-        # Удаляем наш старый android-каркас
         rm -rf android
-        # Копируем свежий от flutter create
-        cp -r /tmp/eclips_fresh/android .
-        echo "=== Copied fresh Android project ==="
-        ls android/
+        cp -r /tmp/eclips_fresh/android ./android
+        echo "=== Android folder replaced ==="
+        ls -la android/
 
     - name: Install dependencies
       run: flutter pub get
