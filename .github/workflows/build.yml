@@ -22,12 +22,14 @@ jobs:
       with:
         channel: 'stable'
 
-    - name: Add gradle wrapper
+    - name: Generate gradle wrapper
       run: |
-        mkdir -p android/gradle/wrapper
-        curl -fsSL -o android/gradlew https://raw.githubusercontent.com/flutter/flutter/stable/examples/hello_world/android/gradlew
-        curl -fsSL -o android/gradle/wrapper/gradle-wrapper.jar https://raw.githubusercontent.com/flutter/flutter/stable/examples/hello_world/android/gradle/wrapper/gradle-wrapper.jar
-        chmod +x android/gradlew
+        cd /tmp
+        flutter create temp_project
+        cp temp_project/android/gradlew $GITHUB_WORKSPACE/android/gradlew
+        cp temp_project/android/gradle/wrapper/gradle-wrapper.jar $GITHUB_WORKSPACE/android/gradle/wrapper/gradle-wrapper.jar
+        chmod +x $GITHUB_WORKSPACE/android/gradlew
+        echo "=== Gradle wrapper added ==="
 
     - name: Install dependencies
       run: flutter pub get
