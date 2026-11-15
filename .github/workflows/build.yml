@@ -22,43 +22,57 @@ jobs:
       with:
         channel: 'stable'
 
-    - name: Create build project
+    - name: Create and locate project
       run: |
         cd /tmp
         flutter create eclips_build --project-name eclips --platforms android
-        echo "=== Fresh project created ==="
+        echo "=== SEARCHING FOR pubspec.yaml ==="
+        find /tmp/eclips_build -name pubspec.yaml
+        echo "=== SEARCHING FOR settings.gradle ==="
+        find /tmp/eclips_build -name settings.gradle
+        echo "=== TOP LEVEL ==="
         ls -la /tmp/eclips_build/
-        ls -la /tmp/eclips_build/android/
+
+    - name: Set PROJECT_DIR variable
+      id: detect
+      run: |
+        if [ -f /tmp/eclips_build/pubspec.yaml ]; then
+          echo "PROJECT_DIR=/tmp/eclips_build" >> $GITHUB_ENV
+        elif [ -f /tmp/eclips_build/eclips/pubspec.yaml ]; then
+          echo "PROJECT_DIR=/tmp/eclips_build/eclips" >> $GITHUB_ENV
+        else
+          echo "!!! NO PROJECT FOUND !!!"
+          exit 1
+        fi
+        echo "Detected: $(cat $GITHUB_ENV)"
 
     - name: Copy our code to build project
       run: |
-        rm -rf /tmp/eclips_build/lib
-        cp -r lib /tmp/eclips_build/
-        cp pubspec.yaml /tmp/eclips_build/
-        cp android/app/src/main/AndroidManifest.xml /tmp/eclips_build/android/app/src/main/AndroidManifest.xml
-        mkdir -p /tmp/eclips_build/android/app/src/main/kotlin/com/example/eclips
-        cp android/app/src/main/kotlin/com/example/eclips/MainActivity.kt /tmp/eclips_build/android/app/src/main/kotlin/com/example/eclips/MainActivity.kt
-        echo "=== Our code copied ==="
-        ls -la /tmp/eclips_build/android/app/src/main/
-        ls -la /tmp/eclips_build/android/app/src/main/kotlin/com/example/eclips/
+        rm -rf $PROJECT_DIR/lib
+        cp -r lib $PROJECT_DIR/
+        cp pubspec.yaml $PROJECT_DIR/
+        cp android/app/src/main/AndroidManifest.xml $PROJECT_DIR/android/app/src/main/AndroidManifest.xml
+        mkdir -p $PROJECT_DIR/android/app/src/main/kotlin/com/example/eclips
+        cp android/app/src/main/kotlin/com/example/eclips/MainActivity.kt $PROJECT_DIR/android/app/src/main/kotlin/com/example/eclips/MainActivity.kt
+        echo "=== Our code copied to $PROJECT_DIR ==="
 
     - name: Install dependencies
       run: |
-        cd /tmp/eclips_build
+        cd $PROJECT_DIR
         flutter pub get
 
     - name: Add WireGuard dependency
       run: |
-        echo "" >> /tmp/eclips_build/android/app/build.gradle
-        echo "dependencies {" >> /tmp/eclips_build/android/app/build.gradle
-        echo '    implementation("com.wireguard.android:tunnel:+")' >> /tmp/eclips_build/android/app/build.gradle
-        echo "}" >> /tmp/eclips_build/android/app/build.gradle
+        echo "" >> $PROJECT_DIR/android/app/build.gradle
+        echo "dependencies {" >> $PROJECT_DIR/android/app/build.gradle
+        echo '    implementation("com.wireguard.android:tunnel:+")' >> $PROJECT_DIR/android/app/build.gradle
+        echo "}" >> $PROJECT_DIR/android/app/build.gradle
         echo "=== WireGuard dep added ==="
-        tail -5 /tmp/eclips_build/android/app/build.gradle
+        tail -5 $PROJECT_DIR/android/app/build.gradle
 
     - name: Build APK
       run: |
-        cd /tmp/eclips_build
+        cd $PROJECT_DIR
         flutter build apk --release
         echo "=== APK built ==="
         ls -la build/app/outputs/flutter-apk/
@@ -67,4 +81,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: eclips-apk
-        path: /tmp/eclips_build/build/app/outputs/flutter-apk/app-release.apk
+        path: ${{ env.PROJECT_DIR }}/build/app/outputs/flutter-apk/app-release.apk
