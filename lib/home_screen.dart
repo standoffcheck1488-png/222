@@ -147,7 +147,7 @@ Endpoint = ${server.endpoint}
 AllowedIPs = ${server.allowedIps}
 PersistentKeepalive = 25
 ''';
-      await _vpnChannel.invokeMethod('startVpn', {
+      await _vpnChannel.invokeMethod('openConfig', {
         'name': server.name,
         'config': config,
       });
@@ -158,22 +158,8 @@ PersistentKeepalive = 25
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text('Туннель поднят 🌑 трафик идёт через сервер')),
+              content: Text('Конфиг отправлен — выбери WireGuard или Karing')),
         );
-      }
-    } on PlatformException catch (e) {
-      setState(() => isConnecting = false);
-      if (mounted) {
-        if (e.code == 'NEED_PERMISSION') {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-                content: Text('Разреши VPN в окне Android и нажми ещё раз')),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Ошибка: ${e.message}')),
-          );
-        }
       }
     } catch (e) {
       setState(() => isConnecting = false);
@@ -185,9 +171,6 @@ PersistentKeepalive = 25
   }
 
   Future<void> _disconnect() async {
-    try {
-      await _vpnChannel.invokeMethod('stopVpn');
-    } catch (e) {}
     setState(() {
       connectedServerId = null;
       isConnecting = false;
