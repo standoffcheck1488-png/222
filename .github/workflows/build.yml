@@ -22,12 +22,24 @@ jobs:
       with:
         channel: 'stable'
 
-    - name: Create Flutter project structure
-      run: flutter create . --project-name eclips
-
-    - name: Add VPN service to manifest
+    - name: Create fresh project
       run: |
-        cat > android/app/src/main/AndroidManifest.xml << 'EOF'
+        cd /tmp
+        flutter create eclips_app
+        echo "=== Project structure ==="
+        ls -la /tmp/eclips_app/
+        ls -la /tmp/eclips_app/android/
+
+    - name: Copy our code
+      run: |
+        rm -rf /tmp/eclips_app/lib
+        cp -r lib /tmp/eclips_app/
+        cp pubspec.yaml /tmp/eclips_app/
+        echo "=== Code copied ==="
+
+    - name: Add VPN manifest
+      run: |
+        cat > /tmp/eclips_app/android/app/src/main/AndroidManifest.xml << 'EOF'
         <manifest xmlns:android="http://schemas.android.com/apk/res/android">
             <uses-permission android:name="android.permission.INTERNET"/>
             <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
@@ -69,8 +81,8 @@ jobs:
 
     - name: Add MainActivity with WireGuard
       run: |
-        mkdir -p android/app/src/main/kotlin/com/example/eclips
-        cat > android/app/src/main/kotlin/com/example/eclips/MainActivity.kt << 'EOF'
+        mkdir -p /tmp/eclips_app/android/app/src/main/kotlin/com/example/eclips
+        cat > /tmp/eclips_app/android/app/src/main/kotlin/com/example/eclips/MainActivity.kt << 'EOF'
         package com.example.eclips
 
         import android.content.Intent
@@ -196,20 +208,26 @@ jobs:
         EOF
 
     - name: Install dependencies
-      run: flutter pub get
+      run: |
+        cd /tmp/eclips_app
+        flutter pub get
 
     - name: Add WireGuard dependency
       run: |
-        echo "" >> android/app/build.gradle
-        echo "dependencies {" >> android/app/build.gradle
-        echo '    implementation("com.wireguard.android:tunnel:+")' >> android/app/build.gradle
-        echo "}" >> android/app/build.gradle
+        echo "" >> /tmp/eclips_app/android/app/build.gradle
+        echo "dependencies {" >> /tmp/eclips_app/android/app/build.gradle
+        echo '    implementation("com.wireguard.android:tunnel:+")' >> /tmp/eclips_app/android/app/build.gradle
+        echo "}" >> /tmp/eclips_app/android/app/build.gradle
 
     - name: Build APK
-      run: flutter build apk --release
+      run: |
+        cd /tmp/eclips_app
+        flutter build apk --release
+        echo "=== APK built ==="
+        ls -la build/app/outputs/flutter-apk/
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: eclips-apk
-        path: build/app/outputs/flutter-apk/app-release.apk
+        path: /tmp/eclips_app/build/app/outputs/flutter-apk/app-release.apk
