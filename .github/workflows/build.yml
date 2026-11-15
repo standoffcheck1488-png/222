@@ -31,10 +31,17 @@ jobs:
         cp android/app/src/main/kotlin/com/example/eclips/MainActivity.kt /tmp/backup/MainActivity.kt
         echo "=== Files backed up ==="
 
+    - name: Wipe old android folder
+      run: |
+        rm -rf android
+        echo "=== Old android removed ==="
+
     - name: Create Flutter project
       run: |
         flutter create . --project-name eclips --platforms android --overwrite
         echo "=== Flutter project created ==="
+        ls android/
+        ls android/app/
 
     - name: Restore our files
       run: |
