@@ -22,54 +22,42 @@ jobs:
       with:
         channel: 'stable'
 
-    - name: Backup our files
+    - name: Create build project
       run: |
-        mkdir -p /tmp/backup
-        cp pubspec.yaml /tmp/backup/
-        cp -r lib /tmp/backup/
-        cp android/app/src/main/AndroidManifest.xml /tmp/backup/AndroidManifest.xml
-        cp android/app/src/main/kotlin/com/example/eclips/MainActivity.kt /tmp/backup/MainActivity.kt
-        echo "=== Files backed up ==="
+        flutter create /tmp/eclips_build --project-name eclips --platforms android
+        echo "=== Fresh project created ==="
 
-    - name: Wipe old android folder
+    - name: Copy our code to build project
       run: |
-        rm -rf android
-        echo "=== Old android removed ==="
-
-    - name: Create Flutter project
-      run: |
-        flutter create . --project-name eclips --platforms android --overwrite
-        echo "=== Flutter project created ==="
-        ls android/
-        ls android/app/
-
-    - name: Restore our files
-      run: |
-        cp /tmp/backup/pubspec.yaml .
-        rm -rf lib
-        cp -r /tmp/backup/lib .
-        cp /tmp/backup/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
-        mkdir -p android/app/src/main/kotlin/com/example/eclips
-        cp /tmp/backup/MainActivity.kt android/app/src/main/kotlin/com/example/eclips/MainActivity.kt
-        echo "=== Our files restored ==="
+        rm -rf /tmp/eclips_build/lib
+        cp -r lib /tmp/eclips_build/
+        cp pubspec.yaml /tmp/eclips_build/
+        cp android/app/src/main/AndroidManifest.xml /tmp/eclips_build/android/app/src/main/AndroidManifest.xml
+        mkdir -p /tmp/eclips_build/android/app/src/main/kotlin/com/example/eclips
+        cp android/app/src/main/kotlin/com/example/eclips/MainActivity.kt /tmp/eclips_build/android/app/src/main/kotlin/com/example/eclips/MainActivity.kt
+        echo "=== Our code copied ==="
 
     - name: Install dependencies
-      run: flutter pub get
+      run: |
+        cd /tmp/eclips_build
+        flutter pub get
 
     - name: Add WireGuard dependency
       run: |
-        echo "" >> android/app/build.gradle
-        echo "dependencies {" >> android/app/build.gradle
-        echo '    implementation("com.wireguard.android:tunnel:+")' >> android/app/build.gradle
-        echo "}" >> android/app/build.gradle
+        echo "" >> /tmp/eclips_build/android/app/build.gradle
+        echo "dependencies {" >> /tmp/eclips_build/android/app/build.gradle
+        echo '    implementation("com.wireguard.android:tunnel:+")' >> /tmp/eclips_build/android/app/build.gradle
+        echo "}" >> /tmp/eclips_build/android/app/build.gradle
         echo "=== WireGuard dep added ==="
-        tail -5 android/app/build.gradle
 
     - name: Build APK
-      run: flutter build apk --release
+      run: |
+        cd /tmp/eclips_build
+        flutter build apk --release
+        echo "=== APK built ==="
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: eclips-apk
-        path: build/app/outputs/flutter-apk/app-release.apk
+        path: /tmp/eclips_build/build/app/outputs/flutter-apk/app-release.apk
