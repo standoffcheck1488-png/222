@@ -22,63 +22,24 @@ jobs:
       with:
         channel: 'stable'
 
-    - name: Create and locate project
-      run: |
-        cd /tmp
-        flutter create eclips_build --project-name eclips --platforms android
-        echo "=== SEARCHING FOR pubspec.yaml ==="
-        find /tmp/eclips_build -name pubspec.yaml
-        echo "=== SEARCHING FOR settings.gradle ==="
-        find /tmp/eclips_build -name settings.gradle
-        echo "=== TOP LEVEL ==="
-        ls -la /tmp/eclips_build/
-
-    - name: Set PROJECT_DIR variable
-      id: detect
-      run: |
-        if [ -f /tmp/eclips_build/pubspec.yaml ]; then
-          echo "PROJECT_DIR=/tmp/eclips_build" >> $GITHUB_ENV
-        elif [ -f /tmp/eclips_build/eclips/pubspec.yaml ]; then
-          echo "PROJECT_DIR=/tmp/eclips_build/eclips" >> $GITHUB_ENV
-        else
-          echo "!!! NO PROJECT FOUND !!!"
-          exit 1
-        fi
-        echo "Detected: $(cat $GITHUB_ENV)"
-
-    - name: Copy our code to build project
-      run: |
-        rm -rf $PROJECT_DIR/lib
-        cp -r lib $PROJECT_DIR/
-        cp pubspec.yaml $PROJECT_DIR/
-        cp android/app/src/main/AndroidManifest.xml $PROJECT_DIR/android/app/src/main/AndroidManifest.xml
-        mkdir -p $PROJECT_DIR/android/app/src/main/kotlin/com/example/eclips
-        cp android/app/src/main/kotlin/com/example/eclips/MainActivity.kt $PROJECT_DIR/android/app/src/main/kotlin/com/example/eclips/MainActivity.kt
-        echo "=== Our code copied to $PROJECT_DIR ==="
+    - name: Create Flutter project structure
+      run: flutter create . --project-name eclips
 
     - name: Install dependencies
-      run: |
-        cd $PROJECT_DIR
-        flutter pub get
+      run: flutter pub get
 
     - name: Add WireGuard dependency
       run: |
-        echo "" >> $PROJECT_DIR/android/app/build.gradle
-        echo "dependencies {" >> $PROJECT_DIR/android/app/build.gradle
-        echo '    implementation("com.wireguard.android:tunnel:+")' >> $PROJECT_DIR/android/app/build.gradle
-        echo "}" >> $PROJECT_DIR/android/app/build.gradle
-        echo "=== WireGuard dep added ==="
-        tail -5 $PROJECT_DIR/android/app/build.gradle
+        echo "" >> android/app/build.gradle
+        echo "dependencies {" >> android/app/build.gradle
+        echo '    implementation("com.wireguard.android:tunnel:+")' >> android/app/build.gradle
+        echo "}" >> android/app/build.gradle
 
     - name: Build APK
-      run: |
-        cd $PROJECT_DIR
-        flutter build apk --release
-        echo "=== APK built ==="
-        ls -la build/app/outputs/flutter-apk/
+      run: flutter build apk --release
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: eclips-apk
-        path: ${{ env.PROJECT_DIR }}/build/app/outputs/flutter-apk/app-release.apk
+        path: build/app/outputs/flutter-apk/app-release.apk
