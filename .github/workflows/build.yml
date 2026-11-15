@@ -25,16 +25,20 @@ jobs:
     - name: Create Flutter project
       run: flutter create . --project-name eclips
 
-    - name: Add MainActivity with openConfig
+    - name: Add MainActivity with file sharing
       run: |
         mkdir -p android/app/src/main/kotlin/com/example/eclips
         cat > android/app/src/main/kotlin/com/example/eclips/MainActivity.kt << 'EOF'
         package com.example.eclips
 
         import android.content.Intent
+        import android.net.Uri
+        import android.os.Environment
+        import androidx.core.content.FileProvider
         import io.flutter.embedding.android.FlutterActivity
         import io.flutter.embedding.engine.FlutterEngine
         import io.flutter.plugin.common.MethodChannel
+        import java.io.File
 
         class MainActivity : FlutterActivity() {
             private val CHANNEL = "com.eclips.app/vpn"
@@ -46,11 +50,30 @@ jobs:
                         when (call.method) {
                             "openConfig" -> {
                                 val config = call.argument<String>("config") ?: ""
-                                val send = Intent(Intent.ACTION_SEND)
-                                send.type = "text/plain"
-                                send.putExtra(Intent.EXTRA_TEXT, config)
-                                startActivity(Intent.createChooser(send, "Открыть в WireGuard"))
-                                result.success(true)
+                                val name = call.argument<String>("name") ?: "eclips"
+                                try {
+                                    val dir = File(cacheDir, "wg_configs")
+                                    if (!dir.exists()) dir.mkdirs()
+                                    val file = File(dir, "$name.conf")
+                                    file.writeText(config)
+
+                                    val uri = FileProvider.getUriForFile(
+                                        this,
+                                        "${packageName}.fileprovider",
+                                        file
+                                    )
+
+                                    val intent = Intent(Intent.ACTION_VIEW).apply {
+                                        setDataAndType(uri, "application/octet-stream")
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    }
+
+                                    val chooser = Intent.createChooser(intent, "Открыть конфиг в")
+                                    startActivity(chooser)
+                                    result.success(true)
+                                } catch (e: Exception) {
+                                    result.error("SHARE_ERROR", e.message, null)
+                                }
                             }
                             else -> result.notImplemented()
                         }
@@ -58,6 +81,18 @@ jobs:
             }
         }
         EOF
+
+        mkdir -p android/app/src/main/res/xml
+        cat > android/app/src/main/res/xml/file_paths.xml << 'EOF2'
+        <?xml version="1.0" encoding="utf-8"?>
+        <paths>
+            <cache-path name="wg_configs" path="wg_configs/" />
+        </paths>
+        EOF2
+
+    - name: Add FileProvider to manifest
+      run: |
+        sed -i 's|</application>|<provider\n                android:name="androidx.core.content.FileProvider"\n                android:authorities="${applicationId}.fileprovider"\n                android:exported="false"\n                android:grantUriPermissions="true">\n                <meta-data\n                    android:name="android.support.FILE_PROVIDER_PATHS"\n                    android:resource="@xml/file_paths" />\n            </provider>\n        </application>|' android/app/src/main/AndroidManifest.xml
 
     - name: Install dependencies
       run: flutter pub get
