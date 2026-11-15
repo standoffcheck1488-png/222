@@ -24,8 +24,11 @@ jobs:
 
     - name: Create build project
       run: |
-        flutter create /tmp/eclips_build --project-name eclips --platforms android
+        cd /tmp
+        flutter create eclips_build --project-name eclips --platforms android
         echo "=== Fresh project created ==="
+        ls -la /tmp/eclips_build/
+        ls -la /tmp/eclips_build/android/
 
     - name: Copy our code to build project
       run: |
@@ -36,6 +39,8 @@ jobs:
         mkdir -p /tmp/eclips_build/android/app/src/main/kotlin/com/example/eclips
         cp android/app/src/main/kotlin/com/example/eclips/MainActivity.kt /tmp/eclips_build/android/app/src/main/kotlin/com/example/eclips/MainActivity.kt
         echo "=== Our code copied ==="
+        ls -la /tmp/eclips_build/android/app/src/main/
+        ls -la /tmp/eclips_build/android/app/src/main/kotlin/com/example/eclips/
 
     - name: Install dependencies
       run: |
@@ -49,12 +54,14 @@ jobs:
         echo '    implementation("com.wireguard.android:tunnel:+")' >> /tmp/eclips_build/android/app/build.gradle
         echo "}" >> /tmp/eclips_build/android/app/build.gradle
         echo "=== WireGuard dep added ==="
+        tail -5 /tmp/eclips_build/android/app/build.gradle
 
     - name: Build APK
       run: |
         cd /tmp/eclips_build
         flutter build apk --release
         echo "=== APK built ==="
+        ls -la build/app/outputs/flutter-apk/
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
